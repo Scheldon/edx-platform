@@ -5,7 +5,6 @@ pertaining to new discussion forum comments.
 import logging
 from urlparse import urljoin
 
-import analytics
 from celery import task
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -24,6 +23,7 @@ from openedx.core.djangoapps.content.course_overviews.models import CourseOvervi
 from openedx.core.djangoapps.ace_common.template_context import get_base_template_context
 from openedx.core.djangoapps.ace_common.message import BaseMessageType
 from openedx.core.lib.celery.task_utils import emulate_http_request
+from track import segment
 
 
 log = logging.getLogger(__name__)
@@ -88,10 +88,13 @@ def _track_notification_sent(message, context):
         'thread_created_at': date.deserialize(context['thread_created_at']),
         'nonInteraction': 1,
     }
-    analytics.track(
+    # The event used to specify the user_id as being the recipient of the email (i.e. the thread_author_id).
+    # This has the effect of interrupting the actual chain of events for that author, if any, while the
+    # email-sent event should really be associated with the sender, since that is what triggers the event.
+    segment.track(
         user_id=context['thread_author_id'],
-        event='edx.bi.email.sent',
-        course_id=context['course_id'],
+        event_name='edx.bi.email.sent',
+        # course_id=context['course_id'],   What would analytics.track have done with this?
         properties=properties
     )
 
