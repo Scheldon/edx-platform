@@ -51,6 +51,9 @@ def get_experiment_user_metadata_context(course, user):
     enrollment_time = None
     enrollment = None
     try:
+        user_enrollments = CourseEnrollment.objects.select_related('course').filter(user_id=user.id)
+        audit_enrollments = user_enrollments.filter(mode='audit')
+        has_paid_enrollments = (len(audit_enrollments) != len(user_enrollments))
         enrollment = CourseEnrollment.objects.select_related(
             'course'
         ).get(user_id=user.id, course_id=course.id)
@@ -83,4 +86,5 @@ def get_experiment_user_metadata_context(course, user):
         'has_staff_access': has_staff_access,
         'forum_roles': forum_roles,
         'partition_groups': user_partitions,
+        'has_paid_enrollments': has_paid_enrollments,
     }
